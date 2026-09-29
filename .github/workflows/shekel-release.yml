@@ -1,0 +1,55 @@
+# Shekel-Africa fork: build and publish the .deb for a -shekel.N tag.
+#
+# Upstream's release.yml only runs in juanfont/headscale and also pushes
+# container images; this workflow builds the packages we install (goreleaser,
+# .goreleaser.shekel.yml) and attaches a SLSA build-provenance attestation to
+# the .deb files and checksums.txt, so a host can verify with
+#   gh attestation verify <file> --repo Shekel-Africa/headscale
+# that the package came from this workflow in this repository.
+#
+# Actions are pinned by commit SHA, as upstream does.
+name: Shekel release
+
+on:
+  push:
+    tags:
+      - "v*-shekel.*"
+
+permissions: {}
+
+jobs:
+  release:
+    if: github.repository == 'Shekel-Africa/headscale'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # create the release and upload assets
+      id-token: write # OIDC token for the provenance attestation
+      attestations: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go (version from go.mod)
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Build and publish with goreleaser
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          distribution: goreleaser
+          version: "v2.18.2"
+          args: release --clean --config .goreleaser.shekel.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/*.deb
+            dist/checksums.txt
