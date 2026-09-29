@@ -30,6 +30,12 @@ jobs:
       - name: govulncheck
         uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # v1.1.0
         with:
-          go-version-file: go.mod
-          go-package: ./...
+          # Same toolchain as shekel-release.yml. The action forwards
+          # go-version-input (default 'stable') to setup-go, which then ignores
+          # go-version-file, so it must be set explicitly.
+          go-version-input: "1.26.x"
+          check-latest: true
+          # What the .deb ships. ./... also scans the integration harness and
+          # cmd/hi (docker, runc), which never ship and would keep this red.
+          go-package: ./cmd/headscale/...
           repo-checkout: false # checked out above, without persisted credentials

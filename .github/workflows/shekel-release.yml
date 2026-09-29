@@ -32,10 +32,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Set up Go (version from go.mod)
+      # The go.mod `go` line is a minimum, not what we ship: build with the
+      # latest patch release of that minor so standard-library fixes (crypto/tls,
+      # net/http behind the public :443 listener) are always included.
+      - name: Set up Go (latest 1.26 patch)
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: go.mod
+          go-version: "1.26.x"
+          check-latest: true
           cache: false
 
       - name: Build and publish with goreleaser
@@ -53,3 +57,11 @@ jobs:
           subject-path: |
             dist/*.deb
             dist/checksums.txt
+
+      # goreleaser creates the release as a draft; it becomes visible only once
+      # the attestation above has succeeded, so no public release ever lacks one.
+      - name: Publish the release (only after attestation succeeded)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false

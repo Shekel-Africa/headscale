@@ -11,13 +11,14 @@ before:
     - go mod vendor
 
 release:
-  # Shekel-Africa fork: publish directly (assets must be downloadable
-  # without auth) and never mark our -shekel.N tags as prereleases.
+  # Shekel-Africa fork: draft until attested (shekel-release.yml publishes it
+  # after actions/attest-build-provenance succeeds); never mark our -shekel.N
+  # tags as prereleases.
   github:
     owner: Shekel-Africa
     name: headscale
   prerelease: false
-  draft: false
+  draft: true
   header: |
     ## Upgrade
 
